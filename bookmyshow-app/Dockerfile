@@ -1,27 +1,25 @@
-# Use Node.js 18 (or your Jenkins-configured version)
-FROM node:18
+# Start with Node.js 18 (Jenkins can override this if needed)
+FROM node:18 AS base
 
-# Set working directory
-WORKDIR /app
+# Define application working directory
+WORKDIR /usr/src/app
 
-# Copy package.json and package-lock.json
-COPY package.json package-lock.json ./
+# Copy dependency files first for better cache
+COPY ["package.json", "package-lock.json", "./"]
 
-# Force install a compatible PostCSS version to fix the issue
-RUN npm install postcss@8.4.21 postcss-safe-parser@6.0.0 --legacy-peer-deps
+# Fix PostCSS issue and install dependencies
+RUN npm install postcss@8.4.21 postcss-safe-parser@6.0.0 --legacy-peer-deps \
+    && npm install --silent
 
-# Install dependencies
-RUN npm install
-
-# Copy the entire project
+# Copy the full project
 COPY . .
 
-# Expose port 3000
-EXPOSE 3000
+# Environment variables
+ENV NODE_OPTIONS="--openssl-legacy-provider" \
+    PORT=3000
 
-# Set environment variable to prevent OpenSSL errors
-ENV NODE_OPTIONS=--openssl-legacy-provider
-ENV PORT=3000
+# Expose container port
+EXPOSE ${PORT}
 
 # Start the application
 CMD ["npm", "start"]
